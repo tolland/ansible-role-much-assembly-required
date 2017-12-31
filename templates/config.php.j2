@@ -1,0 +1,16 @@
+<?php
+
+define("SQL_HOST", "mysql:host={{mar_db_hostname}};dbname={{mar_db_database}};charset=utf8");
+define("SQL_USER", "{{mar_db_username}}");
+define("SQL_PASS", "{{mar_db_password}}");
+
+define("SESSION_NAME", "marSession");
+
+// not sure if this is a sensible way to get a public hostname for the websocket
+// alternatives are SERVER_NAME, or hardcoding into ansible vars
+define("MAR_ADDRESS", "ws://{$_SERVER['HTTP_HOST']}/{{mar_ws_path}}");
+define("MAR_TICK_LENGTH", 1000);
+define("MAR_SERVER_NAME", "Official MAR server");
+
+//Plugins
+//Version

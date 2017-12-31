@@ -1,0 +1,13 @@
+
+
+mar_db_username: mar
+mar_db_password: mar
+mar_db_database: mar
+mar_db_hostname: localhost
+
+mar_ws_path: mar/WS/
+mar_ws_port: 443
+
+mar_web_path: mar/
+mar_web_port: 443
+

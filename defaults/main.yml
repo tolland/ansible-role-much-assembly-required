@@ -11,3 +11,11 @@ mar_ws_port: 443
 mar_web_path: mar/
 mar_web_port: 443
 
+mar_jar_name: server-1.2a.jar
+mar_service_user: marapp
+mar_service_group: marapp
+
+webSocket_port: 8887
+webSocket_host: 127.0.0.1
+
+user_timeout: 100

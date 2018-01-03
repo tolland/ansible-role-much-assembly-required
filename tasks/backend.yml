@@ -1,0 +1,66 @@
+
+
+# user/group to run the java service
+  - group:
+      name: marapp
+      state: present
+      system: true
+
+  - user:
+      name: marapp
+      comment: "Much-Assembly-Required Service"
+      system: true
+      groups: marapp
+#      home: /opt/Much-Assembly-Required/
+
+ # 
+  - name: install the Much Assembly backend
+    git:
+      repo: https://github.com/simon987/Much-Assembly-Required.git
+      dest: /opt/Much-Assembly-Required
+      update: true
+      force: true
+    become: true
+    register: mar_backend_git
+    
+  # if the repo changes, run mvn build/install
+  - name: build the app with maven
+    shell: |
+        cd /opt/Much-Assembly-Required
+        mvn install
+        chown -Rf {{mar_service_user}}:{{mar_service_group}} /opt/Much-Assembly-Required/target
+    when: mar_backend_git.changed
+    become: true
+
+  # create the systemd service file
+  - template:
+      src: templates/much-assembly-required.service.j2
+      dest: /etc/systemd/system/much-assembly-required.service
+      owner: root
+      group: root
+      mode: 0644
+    become: true
+#    when: ansible_distribution == 'Ubuntu'
+    notify:
+    - restart much-assembly-required
+
+
+  # create the mar ap config file from template variables
+  - template:
+      src: templates/config.properties.j2
+      dest: /opt/Much-Assembly-Required/target/config.properties
+      owner: root
+      group: root
+      mode: 0644
+    become: true
+#    when: ansible_distribution == 'Ubuntu'
+    notify:
+    - restart much-assembly-required
+
+
+  - service:
+      name: much-assembly-required
+      state: started
+      enabled: yes
+    when: ansible_distribution == 'Ubuntu'
+    

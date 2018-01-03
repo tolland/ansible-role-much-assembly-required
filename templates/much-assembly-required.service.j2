@@ -1,0 +1,17 @@
+[Unit]
+Description=Much Assembly Required Service
+After=network.target
+
+[Service]
+Type=simple
+#StandardOutput=syslog
+#StandardError=syslog
+WorkingDirectory=/opt/Much-Assembly-Required/target/
+ExecStart=/usr/bin/java -jar {{mar_jar_name}}
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=always
+User={{mar_service_user}}
+Group={{mar_service_group}}
+
+[Install]
+WantedBy=multi-user.target

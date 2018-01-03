@@ -1,0 +1,28 @@
+
+
+
+# do stuff for Fedora
+
+  - name: install basic packages for Fedora
+    action: >
+      {{ ansible_pkg_mgr }} name={{ item }} state=present
+    with_items:
+      - apache2
+      - git
+      - php5
+      - php5-mysql
+      - mysql-server
+      - mysql-client-5.5
+      - python-mysqldb
+      - mongodb-server
+    when: ansible_distribution == 'Ubuntu' and ansible_distribution_version == "16.10"
+    become: true
+
+
+  - service:
+      name: mongod
+      state: started
+      enabled: yes
+    when: ansible_distribution == 'Fedora'
+    become: true
+

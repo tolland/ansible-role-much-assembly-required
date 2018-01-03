@@ -1,0 +1,105 @@
+
+
+
+# do stuff for Ubuntu
+
+  - name: install basic packages for Ubuntu 16.04
+    action: >
+      {{ ansible_pkg_mgr }} name={{ item }} state=present
+    with_items:
+      - apache2
+      - git
+      - php7.0
+      - php7.0-mysql
+      - libapache2-mod-php7.0
+      - mysql-server
+      - mysql-client
+      - python-mysqldb
+      - mongodb-server
+      - openjdk-8-jdk-headless 
+      - maven
+    when: ansible_distribution_version == "16.04"
+    become: true
+
+
+  - name: install basic packages for Ubuntu 16.10
+    action: >
+      {{ ansible_pkg_mgr }} name={{ item }} state=present
+    with_items:
+      - apache2
+      - git
+      - php5
+      - php5-mysql
+      - mysql-server
+      - mysql-client-5.5
+      - python-mysqldb
+      - mongo-server
+      - openjdk-8-jdk-headless
+      - maven
+    when: ansible_distribution_version == "16.10"
+    become: true
+
+  - name: install basic packages for Ubuntu 17.04
+    action: >
+      {{ ansible_pkg_mgr }} name={{ item }} state=present
+    with_items:
+      - apache2
+      - git
+      - php   # is version 7
+      - php-mysql
+      - mysql-server
+      - mysql-client
+      - python-mysqldb
+      - openjdk-8-jdk-headless
+      - maven
+      - mongodb-server
+    when: ansible_distribution_version == "17.04"
+    become: true
+
+  - name: install basic packages for Ubuntu 17.10
+    action: >
+      {{ ansible_pkg_mgr }} name={{ item }} state=present
+    with_items:
+      - apache2
+      - git
+      - php   # is version 7
+      - php-mysql
+      - mysql-server
+      - mysql-client
+      - python-mysqldb
+      - openjdk-8-jdk-headless
+      - maven
+      - mongodb-server
+    when: ansible_distribution_version == "17.10"
+    become: true
+
+# configure apache
+
+  - apache2_module:
+      state: present
+      name: proxy_wstunnel
+    become: true
+    notify:
+    - restart apache2
+
+
+  - apache2_module:
+      state: present
+      name: proxy
+    become: true
+    notify:
+    - restart apache2
+
+
+  - service:
+      name: apache2
+      state: started
+      enabled: yes
+    become: true
+
+
+  - service:
+      name: mongodb
+      state: started
+      enabled: yes
+    become: true

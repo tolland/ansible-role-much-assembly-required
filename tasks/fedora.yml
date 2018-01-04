@@ -1,21 +1,49 @@
 
 
-
 # do stuff for Fedora
 
   - name: install basic packages for Fedora
     action: >
       {{ ansible_pkg_mgr }} name={{ item }} state=present
     with_items:
-      - apache2
+      - httpd
       - git
-      - php5
-      - php5-mysql
-      - mysql-server
-      - mysql-client-5.5
-      - python-mysqldb
+      - php
+      - php-mysqlnd
+      - community-mysql-server
+      - community-mysql
+      - python2-mysql
       - mongodb-server
-    when: ansible_distribution == 'Ubuntu' and ansible_distribution_version == "16.10"
+      - libselinux-python
+      - maven
+      - java-1.8.0-openjdk-headless
+      - libselinux-python
+      - libsemanage-python
+    when: ansible_distribution == 'Fedora'
+    # and ansible_distribution_version == "27"
+    become: true
+
+# create a cache to store generated files to avoid being 
+# over written by git updates
+  - name: Creates cache directory
+    file: 
+      path: /var/cache/ansible
+      state: directory
+    become: true
+
+
+# apply selinux fix for old fedora versions if required
+  - name: configure fedora selinux
+    import_tasks: selinux.yml
+    when: ansible_distribution_version == "26"
+
+
+# httpd needs to be able to make tcp connections
+# http://docs.ansible.com/ansible/latest/seboolean_module.html
+  - seboolean:
+      name: httpd_can_network_connect
+      state: yes
+      persistent: yes
     become: true
 
 
@@ -23,6 +51,122 @@
       name: mongod
       state: started
       enabled: yes
-    when: ansible_distribution == 'Fedora'
     become: true
+
+
+# configure apache
+
+  - apache2_module:
+      state: present
+      name: proxy_wstunnel
+    become: true
+    notify:
+    - restart httpd
+
+
+  - apache2_module:
+      state: present
+      name: proxy
+    become: true
+    notify:
+    - restart httpd
+
+
+  - service:
+      name: httpd
+      state: started
+      enabled: yes
+    become: true
+
+
+  - service:
+      name: mongod
+      state: started
+      enabled: yes
+    become: true
+
+  - service:
+      name: mysqld
+      state: started
+      enabled: yes
+    become: true
+
+
+  # copy in conf file enabling websockets ProxyPass
+  - template:
+      src: templates/websocket_proxy.j2
+      dest: /etc/httpd/conf.d/websocket_proxy.conf
+      owner: root
+      group: root
+      mode: 0644
+    become: true
+    notify:
+    - restart httpd
+
+
+# need to get the Frontend files, as they contain the database.sql file
+
+ # checkout to the cache directory so it is separate from config.php
+  - name: install the Much Assembly frontend
+    git:
+      repo: https://github.com/simon987/Much-Assembly-Required-Frontend.git
+      dest: "/var/cache/ansible/Much-Assembly-Required-Frontend"
+      update: true
+      force: true
+    become: true
+    register: mar_frontend_git
+
+
+# mysql should have been already installed and started
+  - name: Create a new database with name 'mar'
+    mysql_db:
+      name: "{{mar_db_database}}"
+      state: present
+    become: true
+#    notify:
+#    - import data
+    register: mar_create_db
+
+  - mysql_user:
+      name: "{{mar_db_username}}"
+      password: "{{mar_db_password}}"
+      encrypted: no
+      host: localhost
+      priv: "{{mar_db_database}}.*:ALL"
+      state: present
+
+  - name: Import file.sql similar to mysql -u <username> -p <password> < hostname.sql
+    mysql_db:
+      state: import
+      name: "{{mar_db_database}}"
+      target: /var/cache/ansible/Much-Assembly-Required-Frontend/database.sql
+    become: true
+    when: mar_create_db.changed
+
+
+
+
+  # if the repo changes, copy the new files into the repo, merge with config.php
+  - command: >
+         cp -r /var/cache/ansible/Much-Assembly-Required-Frontend/.
+         /var/www/html/{{mar_web_path}}
+    when: mar_frontend_git.changed
+    become: true
+    
+  # mar_web_path: mar/ set in ../vars/main.yml, override in playbook
+  - template:
+      src: templates/config.php.j2
+      dest: "/var/www/html/{{mar_web_path}}include/config.php"
+      owner: root
+      group: root
+      mode: 0644
+    become: true
+    notify:
+    - restart httpd
+    
+    
+# Mysql must be running to start the backend server
+#  install backend components
+  - name: configure backend
+    import_tasks: backend.yml
 

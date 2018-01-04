@@ -5,7 +5,12 @@
   - name: restart apache2
     service: name=apache2 state=restarted
     become: true
+    when: ansible_distribution == "Ubuntu"
 
+  - name: restart httpd
+    service: name=httpd state=restarted
+    become: true
+    when: ansible_os_family == "RedHat"
 
   - name: restart much-assembly-required
     service: name=much-assembly-required state=restarted

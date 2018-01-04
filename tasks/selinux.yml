@@ -1,0 +1,65 @@
+
+# Fedora 24-26 has problems with java apps running under systemd
+# https://bugzilla.redhat.com/show_bug.cgi?id=1388533
+
+# this recipe is used to apply a policy to work-around those issues
+
+  - name: install packages required for policy editing
+    action: >
+      {{ ansible_pkg_mgr }} name={{ item }} state=present
+    with_items:
+      - checkpolicy
+      - policycoreutils-python-utils
+      - policycoreutils
+      - policycoreutils-devel
+    when: ansible_distribution == 'Fedora'
+    become: true
+
+  # enable to log any selinux errors
+  - service:
+      name: auditd
+      state: started
+      enabled: yes
+    become: true
+    when: ansible_distribution == 'Fedora' and ansible_distribution_version == "26"
+
+# create a cache to store generated files
+  - name: Creates cache directory
+    file: 
+      path: /var/cache/ansible
+      state: directory
+    become: true
+
+## seems a bit roundabout, but this was this recipe I followed
+# http://melikedev.com/2013/08/19/linux-selinux-semodule-compile-pp-module-from-te-file/
+
+  - template:
+      src: templates/selinux_policy.j2
+      dest: /var/cache/ansible/java_selinux_policy.te
+      owner: root
+      group: root
+      mode: 0644
+    become: true
+    when: ansible_distribution == 'Fedora'
+    register: create_selinux_template
+    
+    
+  - name: create mod file from te policy file
+    command: |
+      /usr/bin/checkmodule  -m -o /var/cache/ansible/java_selinux_policy.mod /var/cache/ansible/java_selinux_policy.te
+    become: true
+    when: create_selinux_template.changed
+    
+  - name: compile the package
+    command: |
+      /usr/bin/semodule_package -m /var/cache/ansible/java_selinux_policy.mod -o /var/cache/ansible/java_selinux_policy.pp
+    become: true
+    when: create_selinux_template.changed
+    
+  - name: install the package
+    command: |
+      semodule -i /var/cache/ansible/java_selinux_policy.pp
+    register: mymotd
+    become: true
+    when: create_selinux_template.changed
+

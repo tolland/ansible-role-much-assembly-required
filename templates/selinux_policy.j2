@@ -1,0 +1,31 @@
+
+
+module java_selinux_policy 1.0;
+
+require {
+        type useradd_t;
+        type init_t;
+        type groupadd_t;
+        type httpd_t;
+        type unconfined_service_t;
+        type rpm_script_t;
+        class dbus send_msg;
+        class process { noatsecure siginh };
+        class capability net_admin;
+}
+
+
+#============= groupadd_t ==============
+allow groupadd_t init_t:dbus send_msg;
+
+#============= httpd_t ==============
+allow httpd_t self:capability net_admin;
+
+#============= init_t ==============
+allow init_t rpm_script_t:dbus send_msg;
+allow init_t unconfined_service_t:process { noatsecure siginh };
+
+#============= useradd_t ==============
+allow useradd_t init_t:dbus send_msg;
+
+
